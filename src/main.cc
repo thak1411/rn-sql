@@ -10,7 +10,8 @@ INT input() {
     INT x;
     puts("1. PRINT TREE");
     puts("2. INSERT NODE");
-    puts("3. EXIT");
+    puts("3. DELETE NODE");
+    puts("4. EXIT");
     printf(" >>> ");
     scanf("%d", &x);
     return x;
@@ -27,12 +28,17 @@ int main() {
             scanf("%d", &key);
             bpt->insert(key);
             break;
+        case 3:
+            scanf("%d", &key);
+            bpt->erase(key);
+            break;
         default:
             puts("Exit...");
             goto Exit;
         }
     }
 Exit:
+    delete bpt;
 #ifdef __MEMDEBUG__
     if (rn::getMemoryCount()) {
         fprintf(stderr, "Memory Leak Count: %lu\n\n", rn::getMemoryCount());
