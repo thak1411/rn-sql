@@ -37,10 +37,10 @@ int main() {
         for (INT i = 0; i < TC_SMALL; ++i) {
             INT rnd = dis(gen);
             if (dis(gen) >= 0) {
-                if (s.find(rnd) == s.end()) {
+                // if (s.find(rnd) == s.end()) {
                     s.insert(rnd);
                     bpt->insert(rnd);
-                }
+                // }
             } else {
                 s.erase(rnd);
                 bpt->erase(rnd);
