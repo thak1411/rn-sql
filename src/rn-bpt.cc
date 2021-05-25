@@ -364,7 +364,7 @@ Exit:
         }
         KEY_BPT dkey = ptr->getKey(0);
         if (eraseBucket(ptr, key) == FALSE) return FALSE;
-        ptr->merge(root, dkey != ptr->getKey(0) && ptr->getParent() && ptr->getKeySize() == 0, dkey);
+        ptr->merge(root, (dkey != ptr->getKey(0) || ptr->getKeySize() == 0) && ptr->getParent(), dkey);
         return TRUE;
     }
 
