@@ -18,35 +18,40 @@ namespace rn {
         return l;
     }
 
-    SIZE insertBucket(BPlusNode* ptr, KEY_BPT key) {
+    SIZE insertBucket(BPlusNode* ptr, KEY_BPT key, BOOL update = TRUE) {
         if (ptr == NULL) return FALSE;
         INT idx = searchBucket(ptr, key);
         ptr->moveKey(idx, ptr->getKeySize() - idx);
-        ptr->moveChild(idx, ptr->getKeySize() - idx + 1);
+        if (!ptr->getIsLeaf() && update) ptr->moveChild(idx, ptr->getKeySize() - idx + 1);
         ptr->incKeySize();
         ptr->setKey(idx, key);
         return idx;
     }
 
-    BOOL eraseBucket(BPlusNode* ptr, KEY_BPT key) {
+    BOOL eraseBucket(BPlusNode* ptr, KEY_BPT key, BOOL update = TRUE) {
         if (ptr == NULL) return FALSE;
         SIZE idx = searchBucket(ptr, key);
-        if (ptr->getKey(idx) != key) return FALSE;
+        if (idx >= ptr->getKeySize() || ptr->getKey(idx) != key) return FALSE;
         ptr->rmoveKey(idx, ptr->getKeySize() - idx);
-        ptr->rmoveChild(idx, ptr->getKeySize() - idx + 1);
+        if (!ptr->getIsLeaf() && update) ptr->rmoveChild(idx, ptr->getKeySize() - idx + 1);
         ptr->decKeySize();
+        if (idx == 0 && ptr->getIsLeaf() && ptr->getParent() && ptr->getKeySize() > 0) replaceBucket(ptr->getParent(), ptr, key, ptr->getKey(0));
         return TRUE;
     }
 
-    BOOL replaceBucket(BPlusNode* ptr, KEY_BPT key, KEY_BPT newKey) { // Legacy //
-        if (ptr == NULL) return FALSE;
-        SIZE idx = searchBucket(ptr, key);
-        if (ptr->getKey(idx) != key) return FALSE;
-        ptr->setKey(idx, newKey);
-        if (idx == 0 && ptr->getParent()) {
-            replaceBucket(ptr->getParent(), key, newKey);
+    BOOL replaceBucket(BPlusNode* ptr, BPlusNode* chd, KEY_BPT key, KEY_BPT newKey) {
+        if (ptr == NULL) return FALSE; // Exception //
+        // SIZE idx = searchBucket(ptr, key);
+        SIZE idx;
+        for (idx = 0; idx <= ptr->getKeySize(); ++idx) {
+            if (ptr->getChild(idx) == chd) break;
         }
-        return TRUE;
+        if (idx > 0 && ptr->getKey(idx - 1) == key) {
+            ptr->setKey(idx - 1, newKey);
+            return TRUE;
+        }
+        if (ptr->getParent()) return replaceBucket(ptr->getParent(), ptr, key, newKey);
+        return FALSE; // It Can Be Except Behavior //
     }
 
     BPlusNode::BPlusNode() : isLeaf(0), keySize(0), parent(NULL) {
@@ -132,12 +137,13 @@ namespace rn {
         return TRUE;
     }
 
-    BOOL BPlusNode::redistribute(SIZE node, SIZE mnode) {
+    BOOL BPlusNode::redistribute(SIZE node, SIZE mnode, BOOL update, KEY_BPT dkey) {
         BPlusNode* ptr = parent->getChild(mnode);
         BPlusNode* nptr = parent->getChild(node);
-        
         if (node > mnode) {
-            KEY_BPT pkey = parent->getKey(mnode);
+            KEY_BPT pkey;
+            if (ptr->getIsLeaf()) pkey = ptr->getKey(ptr->getKeySize() - 1);
+            else pkey = ptr->getParent()->getKey(mnode);
             BPlusNode* tmp = nptr->getChild(nptr->getKeySize());
             INT idx = insertBucket(nptr, pkey);
             if (!nptr->getIsLeaf()) {
@@ -145,13 +151,17 @@ namespace rn {
                 nptr->setChild(idx + 1, tmp);
                 nptr->getChild(idx)->setParent(nptr);
                 nptr->getChild(idx + 1)->setParent(nptr);
-            } else {
-                eraseBucket(ptr, pkey);
             }
-            parent->setKey(mnode, ptr->getKey(ptr->getKeySize() - 1));
-            eraseBucket(ptr, ptr->getKey(ptr->getKeySize() - 1));
+            if (ptr->getIsLeaf()) eraseBucket(ptr, pkey, FALSE);
+            else {
+                ptr->getParent()->setKey(mnode, ptr->getKey(ptr->getKeySize() - 1));
+                eraseBucket(ptr, ptr->getKey(ptr->getKeySize() - 1), FALSE);
+            }
         } else {
-            KEY_BPT pkey = parent->getKey(node);
+            // KEY_BPT pkey = ptr->getKey(0);
+            KEY_BPT pkey;
+            if (ptr->getIsLeaf()) pkey = ptr->getKey(0);
+            else pkey = ptr->getParent()->getKey(node);
             BPlusNode* tmp = nptr->getChild(nptr->getKeySize());
             INT idx = insertBucket(nptr, pkey);
             if (!nptr->getIsLeaf()) {
@@ -159,59 +169,77 @@ namespace rn {
                 nptr->setChild(idx + 1, ptr->getChild(0));
                 nptr->getChild(idx)->setParent(nptr);
                 nptr->getChild(idx + 1)->setParent(nptr);
-            } else {
-                eraseBucket(ptr, pkey);
             }
-            parent->setKey(node, ptr->getKey(0));
-            eraseBucket(ptr, ptr->getKey(0));
+            if (ptr->getIsLeaf()) eraseBucket(ptr, pkey);
+            else {
+                ptr->getParent()->setKey(node, ptr->getKey(0));
+                eraseBucket(ptr, ptr->getKey(0)); // Replace Bucket //
+            }
         }
+        if (update) replaceBucket(nptr->getParent(), nptr, dkey, nptr->getKey(0));
         return TRUE;
     }
 
-    BOOL BPlusNode::mer(BPlusNode*& root, SIZE node, SIZE prev) {
-        BPlusNode* ptr = parent->getChild(prev);
+    BOOL BPlusNode::mer(BPlusNode*& root, SIZE node, SIZE mnode, BOOL update, KEY_BPT dkey) {
+        BPlusNode* ptr = parent->getChild(mnode);
         BPlusNode* nptr = parent->getChild(node);
-        KEY_BPT pkey = parent->getKey(prev);
-
+        KEY_BPT pkey = parent->getKey(mnode);
         if (!isLeaf) {
-            INT idx = insertBucket(ptr, pkey);
-            ptr->setChild(idx, ptr->getChild(ptr->getKeySize()));
-            ptr->getChild(idx)->setParent(ptr);
+            // INT idx = insertBucket(ptr, pkey, FALSE);
+            INT idx = ptr->getKeySize();
+            ptr->incKeySize();
+            ptr->setKey(idx, pkey);
+
+            ptr->setChild(idx + 1, nptr->getChild(0));
+            ptr->getChild(idx + 1)->setParent(ptr);
         }
         for (INT i = 0; i < nptr->getKeySize(); ++i) { // TODO: Update to memmove //
-            INT idx = insertBucket(ptr, nptr->getKey(i));
+            // INT idx = insertBucket(ptr, nptr->getKey(i), FALSE);
+            INT idx = ptr->getKeySize();
+            ptr->incKeySize();
+            ptr->setKey(idx, nptr->getKey(i));
+
             if (!isLeaf) {
-                ptr->setChild(idx, nptr->getChild(i));
-                ptr->getChild(idx)->setParent(ptr);
+                ptr->setChild(idx + 1, nptr->getChild(i + 1));
+                ptr->getChild(idx + 1)->setParent(ptr);
             }
         }
-        if (!isLeaf) {
-            ptr->setChild(ptr->getKeySize(), nptr->getChild(nptr->getKeySize()));
-            ptr->getChild(ptr->getKeySize())->setParent(ptr);
-        }
+        // if (!isLeaf) {
+        //     ptr->setChild(ptr->getKeySize(), nptr->getChild(nptr->getKeySize()));
+        //     ptr->getChild(ptr->getKeySize())->setParent(ptr);
+        // }
+
+        // eraseBucket(parent, pkey); // !!!!!!!!!!! NEEEEEEED - FIN
+        parent->rmoveKey(mnode, parent->getKeySize() - mnode);
+        if (!parent->getIsLeaf()) parent->rmoveChild(mnode, parent->getKeySize() - mnode + 1);
+        parent->decKeySize();
+
+        parent->setChild(mnode, ptr);
+        ptr->setParent(parent);
         if (isLeaf) {
-            eraseBucket(parent, pkey);
             ptr->setNext(nptr->getNext());
         } else {
-            eraseBucket(parent, pkey);
+            // eraseBucket(parent, pkey);
         }
-        if (parent->getKeySize() == 0) { // Warning: That Pointer Sometime Can't Use Before Redistribution(parent) //
-            parent->setChild(0, ptr);
+        if (parent->getKeySize() == 0) {
+            parent->setChild(0, ptr);  // Warning: This Pointer Can't Use Before Merging Parent //
             if (parent->getParent() == NULL) {
+                delete parent;
                 root = ptr;
                 ptr->setParent(NULL);
-                delete parent;
+                if (update) replaceBucket(ptr->getParent(), ptr, dkey, ptr->getKey(0));
                 goto Exit;
             }
         }
-        parent->merge(root);
+        if (update) replaceBucket(ptr->getParent(), ptr, dkey, ptr->getKey(0));
+        parent->merge(root, FALSE, dkey);
 Exit:
         nptr->setKeySize(0); // Block Delete Recursion //
         delete nptr;
         return TRUE;
     }
 
-    BOOL BPlusNode::merge(BPlusNode*& root) {
+    BOOL BPlusNode::merge(BPlusNode*& root, BOOL update, KEY_BPT dkey) {
         if (root == NULL) return FALSE;
         if (parent == NULL) {
             if (keySize == 0) {
@@ -231,26 +259,22 @@ Exit:
         }
         if (cidx - 1 >= 0 && cidx - 1 <= (INT)parent->getKeySize()) {
             if (parent->getChild(cidx - 1)->getKeySize() + keySize + !isLeaf < DEGREE_BPT * 2) {
-                puts("MER1");
-                return mer(root, cidx, cidx - 1);
+                return mer(root, cidx, cidx - 1, update, dkey);
             }
         }
         if (cidx + 1 >= 0 && cidx + 1 <= (INT)parent->getKeySize()) {
             if (parent->getChild(cidx + 1)->getKeySize() + keySize + !isLeaf < DEGREE_BPT * 2) {
-                puts("MER2");
-                return mer(root, cidx + 1, cidx);
+                return mer(root, cidx + 1, cidx, update, dkey);
             }
         }
         if (cidx - 1 >= 0 && cidx - 1 <= (INT)parent->getKeySize()) {
             if (parent->getChild(cidx - 1)->getKeySize() > 1) { // TODO: Check Condition With UnderFlow - Now: Key is Exist More Than 1 //
-                puts("RED3");
-                return redistribute(cidx, cidx - 1);
+                return redistribute(cidx, cidx - 1, update, dkey);
             }
         }
         if (cidx + 1 >= 0 && cidx + 1 <= (INT)parent->getKeySize()) {
             if (parent->getChild(cidx + 1)->getKeySize() > 1) { // TODO: Check Condition With UnderFlow - Now: Key is Exist More Than 1 //
-                puts("RED4");
-                return redistribute(cidx, cidx + 1);
+                return redistribute(cidx, cidx + 1, update, dkey);
             }
         }
         fprintf(stderr, "Exception in Mer");
@@ -274,9 +298,30 @@ Exit:
             for (INT i = 0; i < ptr->getKeySize(); ++i) {
                 printf(KEY_BPT_FMT " ", ptr->getKey(i));
             }
-            puts(" |");
+            // puts(" |");
+            printf(" | ");
         }
         puts("");
+    }
+
+    VOID BPlusTree::printDetail() {
+        if (root == NULL) return;
+        std::queue < std::pair < BPlusNode*, INT > > q;
+        INT lv = 0;
+        q.push({root, 0});
+        puts("\n [ TREE DETAIL ]");
+        for (; !q.empty(); ) {
+            auto [ptr, c] = q.front(); q.pop();
+            if (lv != c) lv = c, puts("");
+            if (ptr->getKeySize() > 0) printf("%d", ptr->getKey(0));
+            for (INT i = 1; i < ptr->getKeySize(); ++i) printf(", %d", ptr->getKey(i));
+            printf(" | ");
+            if (ptr->getIsLeaf()) continue;
+            for (INT i = 0; i <= ptr->getKeySize(); ++i) {
+                q.push({ptr->getChild(i), c + 1});
+            }
+        }
+        puts("\n");
     }
 
     BOOL BPlusTree::insert(KEY_BPT key) {
@@ -296,7 +341,9 @@ Exit:
             }
             if (!flag) ptr = ptr->getChild(n);
         }
+        KEY_BPT dkey = ptr->getKey(0);
         insertBucket(ptr, key);
+        if (dkey != ptr->getKey(0) && ptr->getParent()) replaceBucket(ptr->getParent(), ptr, dkey, ptr->getKey(0));
         ptr->split(root);
         return TRUE;
     }
@@ -315,8 +362,9 @@ Exit:
             }
             if (!flag) ptr = ptr->getChild(n);
         }
+        KEY_BPT dkey = ptr->getKey(0);
         if (eraseBucket(ptr, key) == FALSE) return FALSE;
-        ptr->merge(root);
+        ptr->merge(root, dkey != ptr->getKey(0) && ptr->getParent() && ptr->getKeySize() == 0, dkey);
         return TRUE;
     }
 

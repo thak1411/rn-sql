@@ -22,6 +22,7 @@ int main() {
     for (INT x, key; (x = input()); ) {
         switch (x) {
         case 1:
+            bpt->printDetail();
             bpt->print();
             break;
         case 2:

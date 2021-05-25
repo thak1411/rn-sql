@@ -3,9 +3,11 @@
 
 #include "rn-type.h"
 
+#include <utility>  // std::pair //
 #include <cstring>  // memset, memmove //
 #include <cstdio>   // printf, puts //
 #include <vector>   // std::vector //
+#include <queue>    // std::queue //
 
 #define DEGREE_BPT      2 // must be bigger than 1
 
@@ -16,10 +18,10 @@ namespace rn {
     class BPlusNode;
     class BPlusTree;
 
-    SIZE insertBucket(BPlusNode*, KEY_BPT);
     SIZE searchBucket(BPlusNode*, KEY_BPT);
-    BOOL eraseBucket(BPlusNode*, KEY_BPT);
-    BOOL replaceBucket(BPlusNode*, KEY_BPT, KEY_BPT);
+    SIZE insertBucket(BPlusNode*, KEY_BPT, BOOL);
+    BOOL eraseBucket(BPlusNode*, KEY_BPT, BOOL);
+    BOOL replaceBucket(BPlusNode*, BPlusNode*, KEY_BPT, KEY_BPT);
 
     class BPlusNode {
     private:
@@ -57,9 +59,9 @@ namespace rn {
         VOID moveChild(SIZE, SIZE);
         VOID rmoveChild(SIZE, SIZE);
         BOOL split(BPlusNode*&);
-        BOOL redistribute(SIZE, SIZE);
-        BOOL mer(BPlusNode*&, SIZE, SIZE);
-        BOOL merge(BPlusNode*&);
+        BOOL redistribute(SIZE, SIZE, BOOL, KEY_BPT);
+        BOOL mer(BPlusNode*&, SIZE, SIZE, BOOL, KEY_BPT);
+        BOOL merge(BPlusNode*&, BOOL, KEY_BPT);
     };
 
     class BPlusTree {
@@ -70,6 +72,7 @@ namespace rn {
         ~BPlusTree();
 
         VOID print();
+        VOID printDetail();
         BOOL erase(KEY_BPT);
         BOOL insert(KEY_BPT);
 
