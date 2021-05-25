@@ -8,8 +8,8 @@
 #include <cstdio>
 #include <set>
 
-#define TC_L        -20
-#define TC_R        20
+#define TC_L        -50
+#define TC_R        50
 #define TC_COUNT    100
 #define TC_SMALL    1000
 #define TC_BIG      10000000
@@ -17,16 +17,11 @@
 BOOL comp(std::multiset < INT > s, std::vector < INT > v) {
     std::vector < INT > w;
     for (auto& it : s) w.push_back(it);
-    // printf(" [ %lu // %lu ]\n", v.size(), w.size());
     if (v.size() != w.size()) return FALSE;
-    BOOL res = 1;
-    res &= v.size() == w.size();
     for (int i = 0; i < v.size(); ++i) {
-        // printf("%d / %d\n", v[i], w[i]);
         if (v[i] != w[i]) return FALSE;
-        res &= v[i] == w[i];
     }
-    return res;
+    return TRUE;
 }
 
 int main() {
@@ -41,21 +36,22 @@ int main() {
         printf(" >> Start %d / %d test ", TC_COUNT - t, TC_COUNT);
         for (INT i = 0; i < TC_SMALL; ++i) {
             INT rnd = dis(gen);
-            bpt->printDetail();
-            bpt->print();
+            // bpt->printDetail();
+            // bpt->print();
             if (dis(gen) >= 0) {
-                if (s.find(rnd) == s.end()) {
-                    printf("INSERT %d\n", rnd);
-                    s.insert(rnd);
-                    bpt->insert(rnd);
-                }// else puts("NONE");
+                // printf("INSERT %d\n", rnd);
+                s.insert(rnd);
+                bpt->insert(rnd);
             } else {
-                printf("ERASE %d\n", rnd);
-                s.erase(rnd);
-                bpt->erase(rnd);
+                // printf("ERASE %d\n", rnd);
+                auto it = s.find(rnd);
+                if (it != s.end()) {
+                    s.erase(it);
+                    bpt->erase(rnd);
+                }
             }
-            bpt->printDetail();
-            bpt->print();
+            // bpt->printDetail();
+            // bpt->print();
             if (!comp(s, bpt->getList())) {
                 puts("CONFLICT");
                 delete bpt;

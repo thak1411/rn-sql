@@ -1,5 +1,5 @@
-#define __STRICT__   // Show All Memory Alloc & DeAlloc //
-#define __MEMDEBUG__ // Use Memory Debuging //
+// #define __STRICT__   // Show All Memory Alloc & DeAlloc //
+// #define __MEMDEBUG__ // Use Memory Debuging //
 #include "rn-memory.hpp"
 #include "rn-bpt.h"
 
@@ -111,7 +111,16 @@ namespace rn {
             root->setChild(0, this);
             root->setChild(1, splt);
         } else {
-            INT piv = insertBucket(parent, key[DEGREE_BPT]);
+            // INT piv = insertBucket(parent, key[DEGREE_BPT]);
+            INT piv;
+            for (piv = 0; piv <= parent->getKeySize(); ++piv) {
+                if (parent->getChild(piv) == this) break;
+            }
+            parent->moveKey(piv, parent->getKeySize() - piv);
+            parent->moveChild(piv, parent->getKeySize() - piv + 1);
+            parent->incKeySize();
+            parent->setKey(piv, key[DEGREE_BPT]);
+
             parent->setChild(piv, this);
             parent->setChild(piv + 1, splt);
         }
@@ -296,10 +305,10 @@ Exit:
         }
         for (; ptr != NULL; ptr = ptr->getNext()) {
             for (INT i = 0; i < ptr->getKeySize(); ++i) {
-                printf(KEY_BPT_FMT " ", ptr->getKey(i));
+                printf(KEY_BPT_FMT ",", ptr->getKey(i));
             }
             // puts(" |");
-            printf(" | ");
+            printf("| ");
         }
         puts("");
     }
@@ -341,9 +350,9 @@ Exit:
             }
             if (!flag) ptr = ptr->getChild(n);
         }
-        KEY_BPT dkey = ptr->getKey(0);
+        // KEY_BPT dkey = ptr->getKey(0);
         insertBucket(ptr, key);
-        if (dkey != ptr->getKey(0) && ptr->getParent()) replaceBucket(ptr->getParent(), ptr, dkey, ptr->getKey(0));
+        // if (dkey != ptr->getKey(0) && ptr->getParent()) replaceBucket(ptr->getParent(), ptr, dkey, ptr->getKey(0));
         ptr->split(root);
         return TRUE;
     }
