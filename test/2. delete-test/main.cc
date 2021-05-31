@@ -8,8 +8,8 @@
 #include <cstdio>
 #include <set>
 
-#define TC_L        -50
-#define TC_R        50
+#define TC_L        -10
+#define TC_R        10
 #define TC_COUNT    100
 #define TC_SMALL    1000
 #define TC_BIG      10000000
@@ -36,22 +36,16 @@ int main() {
         printf(" >> Start %d / %d test ", TC_COUNT - t, TC_COUNT);
         for (INT i = 0; i < TC_SMALL; ++i) {
             INT rnd = dis(gen);
-            // bpt->printDetail();
-            // bpt->print();
             if (dis(gen) >= 0) {
-                // printf("INSERT %d\n", rnd);
                 s.insert(rnd);
                 bpt->insert(rnd);
             } else {
-                // printf("ERASE %d\n", rnd);
                 auto it = s.find(rnd);
                 if (it != s.end()) {
                     s.erase(it);
                     bpt->erase(rnd);
                 }
             }
-            // bpt->printDetail();
-            // bpt->print();
             if (!comp(s, bpt->getList())) {
                 puts("CONFLICT");
                 delete bpt;
