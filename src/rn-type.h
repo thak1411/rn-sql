@@ -17,11 +17,13 @@ typedef double              DOUBLE;
 
 typedef unsigned int        SIZE;
 typedef unsigned long       SIZE_T;
+typedef long                SSIZE_T;
 
 typedef char*               LPSTR;
 typedef const char*         LPCSTR;
 
 typedef void*               LPVOID;
+typedef const void*         LPCVOID;
 typedef short*              LPSHORT;
 typedef int*                LPINT;
 typedef long*               LPLONG;
