@@ -236,7 +236,7 @@ namespace rn {
             np.setParent(splt.getPage());
             np.flush();
         }
-        for (INT i = !ptr->getIsLeaf(), j = 0; i < ptrDegreeMid; ++i, ++j) {
+        for (INT i = !ptr->getIsLeaf(), j = 0; i < ptrDegree - ptrDegreeMid; ++i, ++j) {
             splt.incKeySize();
             splt.setKey(j, ptr->getKey(ptrDegreeMid + i));
             if (ptr->getIsLeaf()) {
@@ -268,6 +268,7 @@ namespace rn {
             np.setKeySize(1);
             np.setKey(0, key);
             np.setValue(0, value);
+            np.setNext(0);
             np.flush();
             header->flush();
             return 0;
@@ -328,5 +329,21 @@ namespace rn {
             }
         }
         puts("\n");
+    }
+
+    std::vector < LLONG > BPlusTree::getList() {
+        std::vector < LLONG > v;
+        if (header->getRoot() == 0) return v;
+        NodePage ptr(io, header->getRoot());
+        for (; !ptr.getIsLeaf(); ) ptr = ptr.getChild(0);
+        for (; ptr.getNext(); ptr = ptr.getNext()) {
+            for (INT i = 0; i < ptr.getKeySize(); ++i) {
+                v.push_back(ptr.getKey(i));
+            }
+        }
+        for (INT i = 0; i < ptr.getKeySize(); ++i) {
+            v.push_back(ptr.getKey(i));
+        }
+        return v;
     }
 }
