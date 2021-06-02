@@ -8,8 +8,8 @@
 #include <cstring>  // memcpy, memmove //
 #include <queue>    // queue //
 
-#define INTERNAL_DEGREE_BPT 4     // 8B + 8B = 16B -> 248 Block //
-#define LEAF_DEGREE_BPT     4      // 8B + 120B = 128B -> 31 Block //
+#define INTERNAL_DEGREE_BPT 248     // 8B + 8B = 16B -> 248 Block //
+#define LEAF_DEGREE_BPT     31      // 8B + 120B = 128B -> 31 Block //
 #define VALUE_SIZE          120     // 120B Fixed //
 #define PAGE_SIZE           4096    // 4KB Fixed //
 
@@ -105,6 +105,7 @@ namespace rn {
         INT erase(LLONG);
 
         VOID print();
+        std::vector < LLONG > getList();
     };
 
     SIZE searchBucket(NodePage*, LLONG);
