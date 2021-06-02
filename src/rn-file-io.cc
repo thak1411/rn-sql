@@ -26,4 +26,8 @@ namespace rn {
     SSIZE_T IO::writePage(LPCVOID buf, LLONG offset) {
         return ::pwrite(fd, buf, PAGE_SIZE, offset);
     }
+
+    SSIZE_T IO::getSize() {
+        return lseek(fd, 0, SEEK_END); // Warning: If Use Read, Write After It Can not be Used //
+    }
 }

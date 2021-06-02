@@ -12,7 +12,8 @@ SET ( OUTPUT_ELF
     "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.out"
 )
 SET ( SRC_FILES
-    rn-bpt.cc
+    rn-bpt-disk.cc
+    rn-file-io.cc
     main.cc
 )
 

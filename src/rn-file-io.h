@@ -1,10 +1,14 @@
 #ifndef __RN_FILE_IO_H__
 #define __RN_FILE_IO_H__
 
-#include "rn-bpt-dist.h"
+namespace rn {
+    class IO;
+}
+
+#include "rn-bpt-disk.h"
 #include "rn-type.h"
 
-#include <unistd.h>     // pread, pwrite //
+#include <unistd.h>     // pread, pwrite, lseek //
 #include <stdlib.h>     // exit //
 #include <stdio.h>      // fprintf //
 #include <fcntl.h>      // open //
@@ -21,6 +25,8 @@ namespace rn {
         SSIZE_T readPage(LPVOID, LLONG);
         SSIZE_T write(LPCVOID, SIZE_T, LLONG);
         SSIZE_T writePage(LPCVOID, LLONG);
+
+        SSIZE_T getSize();
     };
 }
 
