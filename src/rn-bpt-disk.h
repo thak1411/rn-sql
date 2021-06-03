@@ -4,20 +4,44 @@
 #include "rn-file-io.h"
 #include "rn-type.h"
 
-#include <utility>  // pair //
-#include <cstring>  // memcpy, memmove //
-#include <queue>    // queue //
+#include <unordered_map>    // unordered_map //
+#include <utility>          // pair //
+#include <cstring>          // memcpy, memmove //
+#include <queue>            // queue //
+#include <list>             // list //
 
 #define INTERNAL_DEGREE_BPT 248     // 8B + 8B = 16B -> 248 Block //
 #define LEAF_DEGREE_BPT     31      // 8B + 120B = 128B -> 31 Block //
 #define VALUE_SIZE          120     // 120B Fixed //
 #define PAGE_SIZE           4096    // 4KB Fixed //
 
+#define CACHE_SIZE          8192    // CACHE Memory Size - Max Page Size //
 
 // typedef LLONG KEY_BPT;       // Key Type LLONG Fixed //
 // #define KEY_BPT_FMT "%lld"   // Key Type LLONG Fixed //
 
 namespace rn {
+    class Page;
+    class HeaderPage;
+    class FreePage;
+    class NodePage;
+
+    class Cache {
+    private:
+        IO* io;
+        std::list < Page* > used;
+        std::unordered_map < LLONG, std::list < Page* >::iterator > cache;
+    public:
+        Cache(IO*);
+        ~Cache();
+
+        Page* get(LLONG);
+        HeaderPage* getHeader(LLONG);
+        FreePage* getFree(LLONG);
+        NodePage* getNode(LLONG);
+        VOID flush();
+    };
+
     class Page {
     protected:
         BYTE buf[PAGE_SIZE];
@@ -49,7 +73,7 @@ namespace rn {
         VOID setRoot(LLONG);
         VOID setSize(LLONG);
 
-        LLONG newPage();
+        LLONG newPage(Cache*);
     };
 
     class FreePage : public Page {
@@ -95,10 +119,13 @@ namespace rn {
     class BPlusTree {
     private:
         IO* io;
+        Cache* cache;
         HeaderPage* header;
     public:
         BPlusTree(LPCSTR);
         ~BPlusTree();
+
+        BOOL split(NodePage*);
 
         INT find(LLONG, LPSTR);
         INT insert(LLONG, LPCSTR);
@@ -109,7 +136,6 @@ namespace rn {
     };
 
     SIZE searchBucket(NodePage*, LLONG);
-    BOOL split(HeaderPage*, NodePage*);
 }
 
 
