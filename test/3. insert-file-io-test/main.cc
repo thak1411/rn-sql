@@ -1,4 +1,4 @@
-#define __MEMDEBUG__
+// #define __MEMDEBUG__
 #include "../../src/rn-bpt-disk.h"
 #include "../../src/rn-memory.hpp"
 #include "../../src/rn-type.h"
@@ -12,7 +12,7 @@
 #define TC_R        50
 #define TC_COUNT    10
 #define TC_SMALL    1000
-#define TC_BIG      1000000
+#define TC_BIG      3000000
 
 BOOL comp(std::multiset < LLONG > s, std::vector < LLONG > v) {
     std::vector < LLONG > w;
